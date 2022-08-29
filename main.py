@@ -308,6 +308,7 @@ async def on_ready():
         date = datetime.strptime(events[event], "%d %B, %Y")
         if date < now:
             events.pop(event)
+            print(event)
 
     print(f"{bot.user} is ready and online!")
     print(f'{daysuntilkorea().days} days until Jamboree')

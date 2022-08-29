@@ -17,6 +17,7 @@ socials = {
 }
 
 events = {
+    "test event":"28 august 2022"
     "London trip": "1 October, 2022",
     "Whole unit fundraiser event": "12 November, 2022",
     "Joint christmas event with berkshire unit 69": "3 December, 2022",

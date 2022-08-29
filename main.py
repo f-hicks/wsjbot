@@ -294,6 +294,7 @@ async def hourly():
 @bot.event
 async def on_ready():
     changeactivity.start()
+    hourly.start()
     now = datetime.now()
     for event in events:
         date = datetime.strptime(events[event], "%d %B, %Y")

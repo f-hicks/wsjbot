@@ -94,7 +94,19 @@ class questionchannelconfirm(discord.ui.View):
         button.style = discord.ButtonStyle.green
         await interaction.response.edit_message(view=self)
         await interaction.channel.delete()
-         
+
+class addeventconfirmdate(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+    
+    @discord.ui.button(label="I understand",style=discord.ButtonStyle.primary, custom_id="addeventconfirmdate")
+    async def button_callback(self, button, interaction):
+        await interaction.response.send_modal(addeventmodal(title="create an embed"))
+        await interaction.delete_original_message()
+
+        
+
+
 class createmessage(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -269,6 +281,47 @@ class createmessagemodal(discord.ui.Modal):
         description = self.children[1].value
         await interaction.response.send_message(view=selectcolour(embed))
 
+class addeventmodal(discord.ui.Modal):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        
+        self.add_item(discord.ui.InputText(label="Please add the name of the event"))
+        self.add_item(discord.ui.InputText(label="Please add the Date of the event"))
+    async def callback(self, interaction = discord.Interaction):
+        global events
+        eventname = self.children[0].value
+        date = self.children[1].value
+        try:
+            date_ = datetime.strptime(date, "%d %B, %Y")
+        except Exception as e:
+            #print(e)
+            await interaction.response.send_message(f"{date} is not a valid date. Please use the format DD Month, YYYY. for example: 1 January, 2020",view=addeventconfirmdate())
+        else:
+            await interaction.response.send_message(f"{eventname}: {date}")
+            for event in events:
+                if datetime.strptime(events[event], "%d %B, %Y") < date_:
+                    keys = list(events.keys())
+                    index=keys.index(event)
+                    if index == len(events)-1:
+                        events = insert(events,{eventname:date},index+1)
+                        with open("events.py","w") as f:
+                            f.seek(0) 
+                            f.truncate()
+                            f.write(f"events = {events}")
+                else:
+                    keys = list(events.keys())
+                    index=keys.index(event)
+                    events = insert(events,{eventname:date},index)
+                    with open("events.py","w") as f:
+                            f.seek(0) 
+                            f.truncate()
+                            f.write(f"events = {events}")
+                    break
+
+
+insert = lambda _dict, obj, pos: {k: v for k, v in (list(_dict.items())[:pos] +
+                                                    list(obj.items()) +
+                                                    list(_dict.items())[pos:])}
 
 presence = 0
 @tasks.loop(hours=0.001)
@@ -318,6 +371,10 @@ async def say_hello(ctx):
 @default_permissions(manage_messages=True)
 async def create_message(ctx):
     await ctx.send_modal(createmessagemodal(title="create an embed")) # Send a message with our View class that contains the button
+
+@bot.slash_command(name="addevent", description = "adds an events to the event list",) # Create a slash command
+async def addevent(ctx):
+    await ctx.send_modal(addeventmodal(title="add event"))
 
 @bot.slash_command(name="daysuntiljamboree",description="whispers to you the days until the jamboree starts")
 async def DaysUntilJamboree(ctx):

@@ -1,5 +1,4 @@
-from email.policy import default
-from ssl import Options
+
 from discord.ext import tasks
 from discord import default_permissions
 from discord.commands import Option
@@ -8,7 +7,6 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 import random
-from events import events
 
 
 
@@ -568,7 +566,7 @@ class yutnoriplayer1view(discord.ui.View):
         else:
             emojis.append('<:down_:1014501304321708093>')
         emojistring = " ".join(emojis)
-        await interaction.response.send_message(emojistring)
+        message = await interaction.response.send_message(emojistring)
         print(playerthrow, playerscore)
         
     

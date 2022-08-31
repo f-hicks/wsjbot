@@ -1,5 +1,3 @@
-from email.policy import default
-from ssl import Options
 from discord.ext import tasks
 from discord import default_permissions
 from discord.commands import Option
@@ -530,7 +528,6 @@ async def yutnorigame(ctx,opponent: Option(discord.Member, "opponent") ):
     player1 = ctx.author
     boardstring = ""
     for item in list(board.values()):
-        print(item)
         boardstring += item 
     await playyutnori(ctx,player1,player2,board,boardstring)
     
@@ -544,35 +541,86 @@ class yutnoriplayer1view(discord.ui.View):
         global board
         global player1
         global player2
+        await interaction.response.defer()
         if interaction.user == player2:
-            await interaction.response.send_message('It is not your turn to throw!',ephemeral=True)
-        playerthrow = roll()
-        global playerscore
-        playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
-        emojis = []
+            await interaction.followup.send("It is not your turn to throw!",view=None,ephemeral=True)
+        else:
+            playerthrow = roll()
+            global playerscore
+            playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
+            emojis = []
 
-        if playerthrow[0]:
-            emojis.append('<:up_:1014501305814880286>')
-        else:
-            emojis.append('<:down_:1014501304321708093>')
-        if playerthrow[1]:
-            emojis.append('<:up_:1014501305814880286>')
-        else:
-            emojis.append('<:down_:1014501304321708093>')
-        if playerthrow[2]:
-            emojis.append('<:up_:1014501305814880286>')
-        else:
-            emojis.append('<:down_:1014501304321708093>')
-        if playerthrow[3]:
-            emojis.append('<:upcross_:1014501307052216411>')
-        else:
-            emojis.append('<:down_:1014501304321708093>')
-        emojistring = " ".join(emojis)
-        await interaction.response.send_message(emojistring)
-        print(playerthrow, playerscore)
+            if playerthrow[0]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[1]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[2]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[3]:
+                emojis.append('<:upcross_:1014501307052216411>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            emojistring = " ".join(emojis)
+            await interaction.followup.send(content=emojistring)
+            await interaction.channel.send(view=yutnoriplayer2view())
+            global player1score
+            player1score = playerscore
         
+class yutnoriplayer2view(discord.ui.View):
+    def __init__(self):
+        super().__init__()
     
+    @discord.ui.button(label="Throw",custom_id="player1throw")
+    async def throw(self, button, interaction):
+        global board
+        global player1
+        global player2
+        button.disabled = True
+        button.style = discord.ButtonStyle.green
+        await interaction.response.edit_message(view=self)
+        if interaction.user == player1:
+            await interaction.followup.send("It is not your turn to throw!",view=None,ephemeral=True)
+        else:
+            playerthrow = roll()
+            global playerscore
+            playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
+            emojis = []
 
+            if playerthrow[0]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[1]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[2]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[3]:
+                emojis.append('<:upcross_:1014501307052216411>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            emojistring = " ".join(emojis)
+            await interaction.followup.send(content=emojistring)
+            global player1score
+            player2score = playerscore
+            if player1score > player2score:
+                await interaction.channel.send(f"{player1.mention} will start first")
+            elif player2score > player1score:
+                await interaction.channel.send(f"{player2.mention} will start first")
+                tmp = player1
+                player1 = player2
+                player2 = tmp
+            else:
+                interaction.channel.send(f'DRAW!. Throw again \n {player1.mention}:',view=yutnoriplayer1view())
 
 
 bot.run(os.getenv('TOKEN'))

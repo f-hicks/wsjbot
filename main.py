@@ -578,7 +578,7 @@ class yutnoriplayer1view(discord.ui.View):
             else:
                 emojis.append('<:down_:1014501304321708093>')
             emojistring = " ".join(emojis)
-            await interaction.followup.send(content=emojistring)
+            await interaction.channel.send(content=emojistring)
             await interaction.channel.send(f'{player2.mention}\'s go to throw',view=yutnoriplayer2view())
             global player1score
             player1score = playerscore
@@ -843,33 +843,24 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
             global player2
             global player2pieces
             global player1score
-            if board[player1score] == "🔵":
-                board[player1score] == "🔵🔵"
+            if board[player1score].__contains__("🔵"):
+                board[player1score]+="🔵"
                 for piece in player1pieces:
                     if piece == 0:
                         player1pieces[piece] = player1score
                         break
-            elif board[player1score] == "🔵🔵":
-                board[player1score] == "🔵🔵🔵"
-                for piece in player1pieces:
-                    if piece == 0:
-                        player1pieces[piece] = player1score
-                        break
-            elif board[player1score] == "🔵🔵🔵":
-                for piece in player1pieces:
-                    if piece == 0:
-                        player1pieces[piece] = player1score
-                        break
-                board[player1score] == "🔵🔵🔵🔵"
-                for piece in player1pieces:
-                    if piece == 0:
-                        player1pieces[piece] = player1score
-                        break
-            elif board[player1score] == "🔴" or board[player1score] == "🔴🔴" or board[player1score] == "🔴🔴🔴" or board[player1score] == "🔴🔴🔴🔴":
+                numplayer1pieces += 1
+            elif board[player1score].__contains__("🔴"):
                 board[player1score] == "🔵"
                 for piece in [piece for piece in player2pieces if piece == player1score]:
                     player2pieces[piece] = 0
-
+            board["player2home"]="🔴"*(4-numplayer2pieces)
+            board["player1home"] = "🔵"*(4-numplayer1pieces)
+            boardstring = ""
+            for item in list(board.values()):
+                boardstring += item 
+            originalmessage = await interaction.original_message()
+            await originalmessage.edit(content=boardstring)
             
         self.view.disable_all_items()
         self.view.stop()

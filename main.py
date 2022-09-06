@@ -594,6 +594,7 @@ class yutnoriplayer2view(discord.ui.View): #view for player 2 to throw the stick
         global board
         global player1
         global player2
+        print(interaction.user)
         if interaction.user == player1: #checks if it is the correct players turn, if not, it stops them from throwing
             await interaction.followup.send("It is not your turn to throw!",view=None,ephemeral=True)
         else:
@@ -719,7 +720,7 @@ class yutnoriplayer2move1view(discord.ui.View):
     def __init__(self):
         super().__init__()
     
-    @discord.ui.button(label="Throw",custom_id="player1move")
+    @discord.ui.button(label="Throw",custom_id="player2move")
     async def move(self, button, interaction):
         global board
         global player1
@@ -913,23 +914,25 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
                 num = int(interaction.custom_id[12:15]) #gets the number of the piece
                 board[num] = "⚪" #removes the piece from the board
                 newplace = num + player1score #gets the new place of the piece
+                numofpieces = board[num].count("🔵") #gets the number of pieces on the new space
+                if numofpieces == 0: numofpieces = 1
                 player1pieces[player1pieces.index(num)] = newplace #updates the player1pieces variable
                 if board[newplace].__contains__("🔵"): #checks if the space already contains one the players pieces
                     print('contains blue')
                     #adds another blue circle to the place on the board where the piece is and updates player1pieces variable
-                    board[player1score]+="🔵"
+                    board[player1score]+="🔵"*numofpieces
 
                 elif board[newplace].__contains__("🔴"): #checks if the space contains one or more of the other players pieces
                     print('contains red')
                     #replaces the red circle with a blue circle and updates player2pieces variable
-                    board[newplace] = "🔵"
+                    board[newplace] = "🔵"*numofpieces
                     for piece in [piece for piece in player2pieces if piece == newplace]:
                         player2pieces[player2pieces.index(piece)] = 0
                         numplayer2pieces -= 1
                 else: #if the space is empty
                     print('does not contain blue or red')
                     #adds a blue circle to the place on the board where the piece is and updates player1pieces variable
-                    board[newplace] = "🔵"
+                    board[newplace] = "🔵"*numofpieces
                     for piece in player1pieces:
                         if piece == 0:
                             print(player1pieces.index(piece))
@@ -1080,6 +1083,7 @@ class yutnoriplayer2DefaultButton(discord.ui.Button):
                 num = int(interaction.custom_id[12:15]) #gets the number of the piece
                 board[num] = "⚪"
                 newplace = num + player2score #gets the new place of the piece
+                numofpieces = board[num].count("🔴") 
                 if board[newplace].__contains__("🔴"): #checks if the space already contains one the players pieces
                     print('contains red')
                     #adds another red circle to the place on the board where the piece is and updates player2pieces variable

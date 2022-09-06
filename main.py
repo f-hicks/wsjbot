@@ -840,16 +840,17 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
         if interaction.user == player2:
             await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
         else:
+            global player1pieces
+            global numplayer1pieces
+            global numplayer2pieces
+            global board
+            global player1
+            global player2pieces
+            global player1score
             await interaction.response.defer()
             if interaction.custom_id == "player1newpiece":
                 print("new piece")
-                global player1pieces
-                global numplayer1pieces
-                global numplayer2pieces
-                global board
-                global player1
-                global player2pieces
-                global player1score
+
                 print(board[player1score])
                 if board[player1score].__contains__("🔵"):
                     print('contains blue')
@@ -876,7 +877,22 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
                             break
             elif interaction.custom_id.__contains__("player1piece"):
                 num = int(interaction.custom_id[12:])
-                print(f"move piece {num}")
+                newplace = player1pieces[num] + player1score
+                if board[player1score+player1pieces[num]].__contains__("🔵"):
+                    print('contains blue')
+                    board[player1score]+="🔵"
+                    for piece in player1pieces:
+                        if piece == 0:
+                            player1pieces[piece] = player1score
+                            break
+                elif board[player1score].__contains__("🔴"):
+                    print('contains red')
+                    board[player1score] = "🔵"
+                    for piece in [piece for piece in player2pieces if piece == player1score]:
+                        player2pieces[piece] = 0
+                        numplayer2pieces -= 1
+                
+
             board["player2home"]="🔴"*(4-numplayer2pieces)
             board["player1home"] = "🔵"*(4-numplayer1pieces)
             boardstring = ""
@@ -901,12 +917,6 @@ class yutnoriplayer1DefaultView(discord.ui.View):
         return
 
     
-
-        
-
-
-                
-
 
 #class yutnoriplayer2moveview(discord.ui.View):
 

@@ -520,6 +520,7 @@ def score(stick1, stick2, stick3, stick4):
 
 async def playyutnori(ctx,player1,player2,board,boardstring):
     await ctx.respond(f'{ctx.author.mention} has started a game of yut nori with {player2.mention}')
+    await ctx.send(f'Throw the sticks to decide who goes first!')
     await ctx.send(f"\n {ctx.author.mention}'s go to throw",view=yutnoriplayer1view())
 
 
@@ -832,39 +833,55 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
         self.custom_id = custom_id
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
+        
         self.view.custom_id = interaction.custom_id
         print(interaction.custom_id)
-        if interaction.custom_id == "player1newpiece":
-            global player1pieces
-            global numplayer1pieces
-            global board
-            global player1
-            global player2
-            global player2pieces
-            global player1score
-            if board[player1score].__contains__("🔵"):
-                board[player1score]+="🔵"
-                for piece in player1pieces:
-                    if piece == 0:
-                        player1pieces[piece] = player1score
-                        break
-                numplayer1pieces += 1
-            elif board[player1score].__contains__("🔴"):
-                board[player1score] == "🔵"
-                for piece in [piece for piece in player2pieces if piece == player1score]:
-                    player2pieces[piece] = 0
-            board["player2home"]="🔴"*(4-numplayer2pieces)
-            board["player1home"] = "🔵"*(4-numplayer1pieces)
-            boardstring = ""
-            for item in list(board.values()):
-                boardstring += item 
-            originalmessage = await interaction.original_message()
-            await originalmessage.edit(content=boardstring)
-            
-        self.view.disable_all_items()
-        self.view.stop()
-        return
+        global player2
+        if interaction.user == player2:
+            await interaction.reponse.send_message("It is not your turn to move!",view=None,ephemeral=True)
+        else:
+            await interaction.response.defer()
+            if interaction.custom_id == "player1newpiece":
+                print("new piece")
+                global player1pieces
+                global numplayer1pieces
+                global board
+                global player1
+
+                global player2pieces
+                global player1score
+                if board[player1score].__contains__("🔵"):
+                    print('contains blue')
+                    board[player1score]+="🔵"
+                    for piece in player1pieces:
+                        if piece == 0:
+                            player1pieces[piece] = player1score
+                            break
+                    numplayer1pieces += 1
+                elif board[player1score].__contains__("🔴"):
+                    print('contains red')
+                    board[player1score] == "🔵"
+                    for piece in [piece for piece in player2pieces if piece == player1score]:
+                        player2pieces[piece] = 0
+                else:
+                    print('does not contain blue or red')
+                    board[player1score] == "🔵"
+                    for piece in player1pieces:
+                        if piece == 0:
+                            player1pieces[player1pieces.index(piece)] = player1score
+                            break
+                
+                board["player2home"]="🔴"*(4-numplayer2pieces)
+                board["player1home"] = "🔵"*(4-numplayer1pieces)
+                boardstring = ""
+                for item in list(board.values()):
+                    boardstring += item 
+                originalmessage = await interaction.original_message()
+                await originalmessage.edit(content=boardstring)
+                
+            self.view.disable_all_items()
+            self.view.stop()
+            return
 
 class yutnoriplayer1DefaultView(discord.ui.View):
     def __init__(self, custom_id=None):

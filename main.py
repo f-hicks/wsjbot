@@ -482,13 +482,13 @@ async def socialscmd(ctx):
 board = {
     10:"⚪","gap9":"    ",9:"◽","gap8":"    ",8:"◽","gap7":"    ",7:"◽","gap6":"    ",6:"◽","gap5":"    ",5:"⚪","return5":"\n",
     "gap10":"\n",
-    11:"◽","gap22":"      ",10.1:"◽","gap22_":"                    ", 5.1:"◽","gap4":"      ",4:"◽","return4":"\n",
+    11:"◽","gap22":"      ",10.1:"◽","gap22_":"                   ", 5.1:"◽","gap4":"      ",4:"◽","return4":"\n",
     "gap11":"\n",
-    12:"◽","gap23":"            ",10.2:"◽","gap23_":"        ",5.2:"◽","gap21":"            ",3:"◽","return3":"\n",
-    "gap12":"                         ",(5.3,10.2):"⚪","gap28":"                         ","return28":"\n",
-    13:"◽","gap13":"            ",5.4:"◽","gap24":"        ",26:"◽","gap26":"            ",2:"◽","return2":"\n",
+    12:"◽","gap23":"            ",10.2:"◽","gap23_":"       ",5.2:"◽","gap21":"            ",3:"◽","return3":"\n",
+    "gap12":"                        ",(5.3,10.2):"⚪","gap28":"                         ","return28":"\n",
+    13:"◽","gap13":"            ",5.4:"◽","gap24":"       ",26:"◽","gap26":"            ",2:"◽","return2":"\n",
     "gap2":"\n",
-    14:"◽","gap14":"      ",5.5:"◽","gap25":"                    ",27: "◽","gap27":"      ",1:"◽","return1":"\n",
+    14:"◽","gap14":"      ",5.5:"◽","gap25":"                   ",27: "◽","gap27":"      ",1:"◽","return1":"\n",
     "gap1":"\n",
     15:"⚪","gap15":"    ",16:"◽","gap16":"    ",17:"◽","gap17":"    ",18:"◽","gap18":"    ",19:"◽","gap19":"    ",0:"⚪","startfinish":"<-- START/FINISH",None:'\n',
     "return6":"\n",
@@ -838,18 +838,19 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
         print(interaction.custom_id)
         global player2
         if interaction.user == player2:
-            await interaction.reponse.send_message("It is not your turn to move!",view=None,ephemeral=True)
+            await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
         else:
             await interaction.response.defer()
             if interaction.custom_id == "player1newpiece":
                 print("new piece")
                 global player1pieces
                 global numplayer1pieces
+                global numplayer2pieces
                 global board
                 global player1
-
                 global player2pieces
                 global player1score
+                print(board[player1score])
                 if board[player1score].__contains__("🔵"):
                     print('contains blue')
                     board[player1score]+="🔵"
@@ -860,24 +861,29 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
                     numplayer1pieces += 1
                 elif board[player1score].__contains__("🔴"):
                     print('contains red')
-                    board[player1score] == "🔵"
+                    board[player1score] = "🔵"
                     for piece in [piece for piece in player2pieces if piece == player1score]:
                         player2pieces[piece] = 0
+                        numplayer2pieces -= 1
                 else:
                     print('does not contain blue or red')
-                    board[player1score] == "🔵"
+                    board[player1score] = "🔵"
                     for piece in player1pieces:
                         if piece == 0:
+                            print(player1pieces.index(piece))
                             player1pieces[player1pieces.index(piece)] = player1score
+                            print(player1pieces)
                             break
-                
-                board["player2home"]="🔴"*(4-numplayer2pieces)
-                board["player1home"] = "🔵"*(4-numplayer1pieces)
-                boardstring = ""
-                for item in list(board.values()):
-                    boardstring += item 
-                originalmessage = await interaction.original_message()
-                await originalmessage.edit(content=boardstring)
+            elif interaction.custom_id.__contains__("player1piece"):
+                num = int(interaction.custom_id[12:])
+                print(f"move piece {num}")
+            board["player2home"]="🔴"*(4-numplayer2pieces)
+            board["player1home"] = "🔵"*(4-numplayer1pieces)
+            boardstring = ""
+            for item in list(board.values()):
+                boardstring += item 
+            originalmessage = await interaction.original_message()
+            await originalmessage.edit(content=boardstring,view=None)
                 
             self.view.disable_all_items()
             self.view.stop()

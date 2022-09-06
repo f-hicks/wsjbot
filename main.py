@@ -851,10 +851,10 @@ class yutnoriplayer1move2view(discord.ui.View):
             view = yutnoriplayer1DefaultView()
             #if the player still has pieces at home it will display a new piece button
             if 0 in player1pieces:
-                view.add_item(yutnoriplayer1DefaultButton(label="get a new piece out",custom_id="player1newpiece"))
+                view.add_item(yutnoriplayer1DefaultButton(label="get a new piece out",custom_id=f"player1newpiece {random.randint(1,1000)}"))
             #it will display a button for each piece they have on the board
             for piece in (piece for piece in player1pieces if piece != 0):
-                view.add_item(yutnoriplayer1DefaultButton(label=f"Move piece at location {piece}",custom_id=f"player1piece{piece}"))
+                view.add_item(yutnoriplayer1DefaultButton(label=f"Move piece at location {piece}",custom_id=f"player1piece {piece}       {random.randint(1,1000)}"))
             await originalmessage.edit(view=view)
 
 
@@ -879,7 +879,7 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
             global player2pieces
             global player1score
             await interaction.response.defer()
-            if interaction.custom_id == "player1newpiece": #checks if the button being pressed is the new piece button
+            if interaction.custom_id.__contains__("player1newpiece"): #checks if the button being pressed is the new piece button
                 print("new piece")
 
                 print(board[player1score])
@@ -897,7 +897,7 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
                     #replaces the red circle with a blue circle and updates player2pieces variable
                     board[player1score] = "🔵"
                     for piece in [piece for piece in player2pieces if piece == player1score]: # for each piece that is on the space the player is moving to
-                        player2pieces[player1pieces.index(piece)] = 0
+                        player2pieces[player2pieces.index(piece)] = 0
                         numplayer2pieces -= 1
                 else: #if the space is empty
                     print('does not contain blue or red')
@@ -910,20 +910,19 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
                             print(player1pieces)
                             break
             elif interaction.custom_id.__contains__("player1piece"): #checks if the button being pressed is a piece button
-                num = int(interaction.custom_id[12:]) #gets the number of the piece
+                num = int(interaction.custom_id[12:15]) #gets the number of the piece
+                board[num] = "⚪" #removes the piece from the board
                 newplace = num + player1score #gets the new place of the piece
+                player1pieces[player1pieces.index(num)] = newplace #updates the player1pieces variable
                 if board[newplace].__contains__("🔵"): #checks if the space already contains one the players pieces
                     print('contains blue')
                     #adds another blue circle to the place on the board where the piece is and updates player1pieces variable
                     board[player1score]+="🔵"
-                    for piece in player1pieces:
-                        if piece == 0:
-                            player1pieces[player1pieces[0]] = player1score
-                            break
+
                 elif board[newplace].__contains__("🔴"): #checks if the space contains one or more of the other players pieces
                     print('contains red')
                     #replaces the red circle with a blue circle and updates player2pieces variable
-                    board[player1score] = "🔵"
+                    board[newplace] = "🔵"
                     for piece in [piece for piece in player2pieces if piece == newplace]:
                         player2pieces[player2pieces.index(piece)] = 0
                         numplayer2pieces -= 1
@@ -945,7 +944,8 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
             for item in list(board.values()):
                 boardstring += item 
             originalmessage = await interaction.original_message()
-            await originalmessage.edit(content=boardstring,view=None)
+            await originalmessage.edit(content=boardstring,view=yutnoriplayer2move2view())
+            await move.edit(f"{player2.mention}'s go")
                 
             self.view.disable_all_items()
             self.view.stop()
@@ -961,6 +961,175 @@ class yutnoriplayer1DefaultView(discord.ui.View):
         self.stop()
         await self.message.interaction.followup.send("Timed out.", ephemeral=True)
         return
+
+class yutnoriplayer2move2view(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+    @discord.ui.button(label="Throw",custom_id="player2move")
+    async def move(self, button, interaction):
+        global board
+        global player1
+        global player2
+        global player1pieces
+        global player2pieces
+
+        if interaction.user == player1:#checks if it is the correct players turn, if not, it stops them from throwing
+            await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
+        else:
+            button.disabled = True
+            button.style = discord.ButtonStyle.green
+            await interaction.response.edit_message(view=self)
+            #gets the throw
+            playerthrow = roll()
+            #gets the score
+            playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
+            #creates the emojis for the sticks to be displayed
+            emojis = []
+            if playerthrow[0]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[1]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[2]:
+                emojis.append('<:up_:1014501305814880286>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            if playerthrow[3]:
+                emojis.append('<:upcross_:1014501307052216411>')
+            else:
+                emojis.append('<:down_:1014501304321708093>')
+            #adds the emoji list to a string and sends it
+            emojistring = " ".join(emojis)
+            global player2score
+            player2score = playerscore
+            #gets the message object of various messages when sending them and tells the player what they threw
+            playerscoremessage = await interaction.followup.send(content=f'{player2.mention} threw a {playerscore}')
+            playerscoreimagemessage = await interaction.followup.send(content=emojistring)
+            originalmessage = await interaction.original_message()
+            time.sleep(2)
+            await playerscoremessage.delete()
+            await playerscoreimagemessage.delete()
+            global player2pieces
+            view = yutnoriplayer2DefaultView()
+            #if the player still has pieces at home it will display a new piece button
+            if 0 in player2pieces:
+                view.add_item(yutnoriplayer1DefaultButton(label="get a new piece out",custom_id=f"player2newpiece {random.randint(1,1000)}"))
+            #it will display a button for each piece they have on the board 
+            for piece in (piece for piece in player2pieces if piece != 0):
+                view.add_item(yutnoriplayer2DefaultButton(label=f"Move piece at location {piece}",custom_id=f"player2piece{piece}             {random.randint(1,1000)}"))
+            await originalmessage.edit(view=view)
+
+
+class yutnoriplayer2DefaultButton(discord.ui.Button):
+    def __init__(self, custom_id, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.custom_id = custom_id
+
+    async def callback(self, interaction: discord.Interaction):
+        
+        self.view.custom_id = interaction.custom_id
+        print(interaction.custom_id)
+        global player1
+        if interaction.user == player1: #checks if it is the correct players turn, if not, it stops them from throwing
+            await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
+        else:
+            global player2pieces
+            global numplayer2pieces
+            global numplayer1pieces
+            global board
+            global player2
+            global player1pieces
+            global player1score
+            await interaction.response.defer()
+            if interaction.custom_id.__contains__("player2newpiece"): #checks if the button being pressed is the new piece button
+                print("new piece")
+
+                print(board[player2score])
+                if board[player2score].__contains__("🔴"): #checks if the space already contains one the players pieces
+                    print('contains red')
+                    #adds another red circle to the place on the board where the piece is and updates player2pieces variable
+                    board[player2score]+="🔴"
+                    for piece in player2pieces:
+                        if piece == 0:
+                            player2pieces[player2pieces.index(piece)] = player2score
+                            break
+                    numplayer2pieces += 1
+                elif board[player2score].__contains__("🔵"): #checks if the space contains one or more of the other players pieces
+                    print('contains blue')
+                    #replaces the blue circle with a blue circle and updates player2pieces variable
+                    board[player2score] = "🔴"
+                    for piece in [piece for piece in player1pieces if piece == player2score]: # for each piece that is on the space the player is moving to
+                        player1pieces[player2pieces.index(piece)] = 0
+                        numplayer1pieces -= 1
+                else: #if the space is empty
+                    print('does not contain blue or red')
+                    #adds a blue circle to the place on the board where the piece is and updates player2pieces variable
+                    board[player2score] = "🔵"
+                    for piece in player2pieces:
+                        if piece == 0:
+                            print(player2pieces.index(piece))
+                            player2pieces[player2pieces.index(piece)] = player2score
+                            print(player2pieces)
+                            break
+            elif interaction.custom_id.__contains__("player2piece"): #checks if the button being pressed is a piece button
+                
+                num = int(interaction.custom_id[12:15]) #gets the number of the piece
+                board[num] = "⚪"
+                newplace = num + player2score #gets the new place of the piece
+                if board[newplace].__contains__("🔴"): #checks if the space already contains one the players pieces
+                    print('contains red')
+                    #adds another red circle to the place on the board where the piece is and updates player2pieces variable
+                    board[player2score]+="🔴"
+                    for piece in (piece for piece in player2pieces if piece == newplace):
+                        player2pieces[player2pieces[0]] = player2score
+                        break
+                elif board[newplace].__contains__("🔵"): #checks if the space contains one or more of the other players pieces
+                    print('contains blue')
+                    #replaces the blue circle with a red circle and updates player2pieces variable
+                    board[newplace] = "🔴"
+                    for piece in [piece for piece in player1pieces if piece == newplace]:
+                        player1pieces[player1pieces.index(piece)] = 0
+                        numplayer2pieces -= 1
+                else: #if the space is empty
+                    print('does not contain blue or red')
+                    #adds a red circle to the place on the board where the piece is and updates player2pieces variable
+                    board[newplace] = "🔴"
+                    for piece in player2pieces:
+                        if piece == 0:
+                            print(player2pieces.index(piece))
+                            player2pieces[player2pieces.index(piece)] = player2score
+                            print(player2pieces)
+                            break
+                
+
+            board["player2home"]="🔴"*(4-numplayer2pieces)
+            board["player1home"] = "🔵"*(4-numplayer1pieces)
+            boardstring = ""
+            for item in list(board.values()):
+                boardstring += item 
+            originalmessage = await interaction.original_message()
+            await originalmessage.edit(content=boardstring,view=yutnoriplayer1move2view())
+            await move.edit(f"{player1.mention}'s go")
+                
+            self.view.disable_all_items()
+            self.view.stop()
+            return
+
+class yutnoriplayer2DefaultView(discord.ui.View):
+    def __init__(self, custom_id=None):
+        super().__init__()
+        self.custom_id = custom_id
+
+    async def on_timeout(self):
+        self.disable_all_items()
+        self.stop()
+        await self.message.interaction.followup.send("Timed out.", ephemeral=True)
+        return
+
 
 #class yutnoriplayer2moveview(discord.ui.View):
 

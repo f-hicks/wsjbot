@@ -495,14 +495,14 @@ board = {
     "player1home":"🔵🔵🔵🔵","gap30":"    ","player2home":"🔴🔴🔴🔴","gap31":"                        ","player1finish":"","gap32":"    ","player2finish":""
 }
 
-def roll():
+def roll(): # throw the sticks and return a tuple of the results
     stick1 = bool(random.getrandbits(1))
     stick2 = bool(random.getrandbits(1))
     stick3 = bool(random.getrandbits(1))
     stick4 = bool(random.getrandbits(1))
     return stick1, stick2, stick3, stick4
 
-def score(stick1, stick2, stick3, stick4):
+def score(stick1, stick2, stick3, stick4): #calculates the score of the throw
     sticksup = sum([stick1,stick2,stick3,stick4])
     if sticksup == 0:
         return 5
@@ -518,14 +518,15 @@ def score(stick1, stick2, stick3, stick4):
     else:
         return 4
 
-async def playyutnori(ctx,player1,player2,board,boardstring):
+
+async def playyutnori(ctx,player1,player2,board,boardstring): #starts the game
     await ctx.respond(f'{ctx.author.mention} has started a game of yut nori with {player2.mention}')
     await ctx.send(f'Throw the sticks to decide who goes first!')
     await ctx.send(f"\n {ctx.author.mention}'s go to throw",view=yutnoriplayer1view())
 
 
 @bot.slash_command(name="yutnori",description="starts a game of yut nori with whoever you ping")
-async def yutnorigame(ctx,opponent: Option(discord.Member, "opponent") ):
+async def yutnorigame(ctx,opponent: Option(discord.Member, "opponent") ): #slash command to start the game
     global player1pieces
     global player2pieces
     player1pieces = [0,0,0,0]
@@ -540,8 +541,8 @@ async def yutnorigame(ctx,opponent: Option(discord.Member, "opponent") ):
         boardstring += item 
     await playyutnori(ctx,player1,player2,board,boardstring)
     
-    
-class yutnoriplayer1view(discord.ui.View):
+
+class yutnoriplayer1view(discord.ui.View):#view for player 1 to throw the sticks to decide who goes first
     def __init__(self):
         super().__init__(timeout=None)
     
@@ -584,7 +585,7 @@ class yutnoriplayer1view(discord.ui.View):
             global player1score
             player1score = playerscore
         
-class yutnoriplayer2view(discord.ui.View):
+class yutnoriplayer2view(discord.ui.View): #view for player 2 to throw the sticks to decide who goes first
     def __init__(self):
         super().__init__()
     
@@ -593,7 +594,7 @@ class yutnoriplayer2view(discord.ui.View):
         global board
         global player1
         global player2
-        if interaction.user == player1:
+        if interaction.user == player1: #checks if it is the correct players turn, if not, it stops them from throwing
             await interaction.followup.send("It is not your turn to throw!",view=None,ephemeral=True)
         else:
             button.disabled = True
@@ -603,7 +604,7 @@ class yutnoriplayer2view(discord.ui.View):
             global playerscore
             playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
             emojis = []
-
+            #creates the emojis for the sticks to be displayed
             if playerthrow[0]:
                 emojis.append('<:up_:1014501305814880286>')
             else:
@@ -620,24 +621,29 @@ class yutnoriplayer2view(discord.ui.View):
                 emojis.append('<:upcross_:1014501307052216411>')
             else:
                 emojis.append('<:down_:1014501304321708093>')
+            #adds the emoji list to a string and sends it
             emojistring = " ".join(emojis)
             await interaction.followup.send(content=emojistring)
             global player1score
             player2score = playerscore
             global move
+            #tells the players who goes first
             if player1score > player2score:
                 move = await interaction.channel.send(f"{player1.mention} will start first")
             elif player2score > player1score:
                 move = await interaction.channel.send(f"{player2.mention} will start first")
+                #if the player who didn't send the command to start it wins the throw, it will swap the players around
                 tmp = player1
                 player1 = player2
                 player2 = tmp
-            else:
+            else:#if the players tie, they will have to throw again
                 await interaction.channel.send(f'DRAW!. Throw again \n {player1.mention}:',view=yutnoriplayer1view())
                 return
+            #creates a string of the values of dictionary: board
             boardstring = ""
             for item in list(board.values()):
                 boardstring += item 
+            #sends the board and a throw button to the players
             await interaction.channel.send('The board: \n' + boardstring,view = yutnoriplayer1move1view())
             
 
@@ -652,7 +658,7 @@ class yutnoriplayer1move1view(discord.ui.View):
         global player2
         global numplayer1pieces
         global player1pieces
-        if interaction.user == player2:
+        if interaction.user == player2:#checks if it is the correct players turn, if not, it stops them from throwing
             await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
         else:
             button.disabled = True
@@ -661,7 +667,7 @@ class yutnoriplayer1move1view(discord.ui.View):
             playerthrow = roll()
             playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
             emojis = []
-
+            #creates the emojis for the sticks to be displayed
             if playerthrow[0]:
                 emojis.append('<:up_:1014501305814880286>')
             else:
@@ -678,26 +684,34 @@ class yutnoriplayer1move1view(discord.ui.View):
                 emojis.append('<:upcross_:1014501307052216411>')
             else:
                 emojis.append('<:down_:1014501304321708093>')
+            #adds the emoji list to a string and sends it
             emojistring = " ".join(emojis)
+            #gets the message object of various messages when sending them
             playerscoremessage = await interaction.followup.send(content=f'{player1.mention} threw a {playerscore}')
             playerscoreimagemessage = await interaction.followup.send(content=emojistring)
             originalmessage = await interaction.original_message()
-            if playerscore == -1:
+            if playerscore == -1:#if the player throws a -1, it counts as a 1 if they don't have any pieces on the board
                 board[1] = "🔵"
                 player1pieces[0] = 1
-            else:
-                board[playerscore]="🔵"
+            else: 
+                board[playerscore]="🔵" # places the piece on the board in the correct place
                 player1pieces[0] = playerscore
             numplayer1pieces = 0
+            #creates a variable to keep track of all the pieces of player 1 on the board
             for piece in player1pieces:
                 if piece != 0:
                     numplayer1pieces += 1
+            #changes the amount of blue circles in the player1home slot to the amount of pieces they don't have on the board
             board["player1home"]="🔵"*(4-numplayer1pieces)
+            #refreshes the boardstring
             boardstring = ""
             for item in list(board.values()):
                 boardstring += item 
+            #tells the second player to throw
             await move.edit(f"{player2.mention}'s go")
+            #sends the board and a throw button to the players
             await originalmessage.edit(content=boardstring,view=yutnoriplayer2move1view())
+            #deletes the throw messages that were sent to the player
             await playerscoremessage.delete()
             await playerscoreimagemessage.delete()
 
@@ -712,7 +726,7 @@ class yutnoriplayer2move1view(discord.ui.View):
         global player2
         global numplayer2pieces
         global player1pieces
-        if interaction.user == player1:
+        if interaction.user == player1:#checks if it is the correct players turn, if not, it stops them from throwing
             await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
         else:
             button.disabled = True
@@ -721,7 +735,7 @@ class yutnoriplayer2move1view(discord.ui.View):
             playerthrow = roll()
             playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
             emojis = []
-
+            #creates the emojis for the sticks to be displayed
             if playerthrow[0]:
                 emojis.append('<:up_:1014501305814880286>')
             else:
@@ -738,38 +752,48 @@ class yutnoriplayer2move1view(discord.ui.View):
                 emojis.append('<:upcross_:1014501307052216411>')
             else:
                 emojis.append('<:down_:1014501304321708093>')
+            #adds the emoji list to a string and sends it
             emojistring = " ".join(emojis)
-            playerscoremessage = await interaction.followup.send(content=f'{player1.mention} threw a {playerscore}')
+            #gets the message object of various messages when sending them
+            playerscoremessage = await interaction.followup.send(content=f'{player2.mention} threw a {playerscore}')
             playerscoreimagemessage = await interaction.followup.send(content=emojistring)
             originalmessage = await interaction.original_message()
             
             global player1pieces
             global numplayer1pieces
-            if playerscore == -1:
-                if board[1] == "🔵":
+            if playerscore == -1:#if the player throws a -1, it counts as a 1 if they don't have any pieces on the board
+                if board[1] == "🔵": #checks if the space already holds player 1's piece
                     player1pieces[0] = 0
                     numplayer1pieces -= 1
-                    
+                #places the piece on the board in the correct place
                 board[1] = "🔴"
                 player2pieces[0] = 1
-            else:
-                if board[1] == "🔵":
+            else: 
+                if board[playerscore] == "🔵": #checks if the space already holds player 1's piece
                     player1pieces[0] = 0
                     numplayer1pieces -= 1
+                #places the piece on the board in the correct place
                 board[playerscore]="🔴"
                 player2pieces[0] = playerscore
+            #creates a variable to keep track of all the pieces of player 2 on the board
             numplayer2pieces = 0
             for piece in player2pieces:
                 if piece != 0:
                     numplayer2pieces += 1
+            #changes the amount of red circles in the player2home slot to the amount of pieces they don't have on the board
             board["player2home"]="🔴"*(4-numplayer2pieces)
+            #changes the amount of blue circles in the player1home slot to the amount of pieces they don't have on the board
             board["player1home"] = "🔵"*(4-numplayer1pieces)
+            #refreshes the boardstring
             boardstring = ""
             for item in list(board.values()):
                 boardstring += item 
+            #updates the board message to the new board and sends a throw button to the players
             await originalmessage.edit(content=boardstring,view=yutnoriplayer1move2view())
+            #deletes the throw messages that were sent to the player
             await playerscoremessage.delete()
             await playerscoreimagemessage.delete()
+            #tells the first player to throw
             await move.edit(f"{player1.mention}'s go")
 
 class yutnoriplayer1move2view(discord.ui.View):
@@ -784,14 +808,17 @@ class yutnoriplayer1move2view(discord.ui.View):
         global player1pieces
         global player2pieces
 
-        if interaction.user == player2:
+        if interaction.user == player2:#checks if it is the correct players turn, if not, it stops them from throwing
             await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
         else:
             button.disabled = True
             button.style = discord.ButtonStyle.green
             await interaction.response.edit_message(view=self)
+            #gets the throw
             playerthrow = roll()
+            #gets the score
             playerscore = score(playerthrow[0],playerthrow[1],playerthrow[2],playerthrow[3])
+            #creates the emojis for the sticks to be displayed
             emojis = []
             if playerthrow[0]:
                 emojis.append('<:up_:1014501305814880286>')
@@ -809,9 +836,11 @@ class yutnoriplayer1move2view(discord.ui.View):
                 emojis.append('<:upcross_:1014501307052216411>')
             else:
                 emojis.append('<:down_:1014501304321708093>')
+            #adds the emoji list to a string and sends it
             emojistring = " ".join(emojis)
             global player1score
             player1score = playerscore
+            #gets the message object of various messages when sending them and tells the player what they threw
             playerscoremessage = await interaction.followup.send(content=f'{player1.mention} threw a {playerscore}')
             playerscoreimagemessage = await interaction.followup.send(content=emojistring)
             originalmessage = await interaction.original_message()
@@ -820,8 +849,10 @@ class yutnoriplayer1move2view(discord.ui.View):
             await playerscoreimagemessage.delete()
             global player1pieces
             view = yutnoriplayer1DefaultView()
+            #if the player still has pieces at home it will display a new piece button
             if 0 in player1pieces:
                 view.add_item(yutnoriplayer1DefaultButton(label="get a new piece out",custom_id="player1newpiece"))
+            #it will display a button for each piece they have on the board
             for piece in (piece for piece in player1pieces if piece != 0):
                 view.add_item(yutnoriplayer1DefaultButton(label=f"Move piece at location {piece}",custom_id=f"player1piece{piece}"))
             await originalmessage.edit(view=view)
@@ -837,7 +868,7 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
         self.view.custom_id = interaction.custom_id
         print(interaction.custom_id)
         global player2
-        if interaction.user == player2:
+        if interaction.user == player2: #checks if it is the correct players turn, if not, it stops them from throwing
             await interaction.response.send_message("It is not your turn to move!",view=None,ephemeral=True)
         else:
             global player1pieces
@@ -848,26 +879,29 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
             global player2pieces
             global player1score
             await interaction.response.defer()
-            if interaction.custom_id == "player1newpiece":
+            if interaction.custom_id == "player1newpiece": #checks if the button being pressed is the new piece button
                 print("new piece")
 
                 print(board[player1score])
-                if board[player1score].__contains__("🔵"):
+                if board[player1score].__contains__("🔵"): #checks if the space already contains one the players pieces
                     print('contains blue')
+                    #adds another blue circle to the place on the board where the piece is and updates player1pieces variable
                     board[player1score]+="🔵"
                     for piece in player1pieces:
                         if piece == 0:
-                            player1pieces[piece] = player1score
+                            player1pieces[player1pieces.index(piece)] = player1score
                             break
                     numplayer1pieces += 1
-                elif board[player1score].__contains__("🔴"):
+                elif board[player1score].__contains__("🔴"): #checks if the space contains one or more of the other players pieces
                     print('contains red')
+                    #replaces the red circle with a blue circle and updates player2pieces variable
                     board[player1score] = "🔵"
-                    for piece in [piece for piece in player2pieces if piece == player1score]:
-                        player2pieces[piece] = 0
+                    for piece in [piece for piece in player2pieces if piece == player1score]: # for each piece that is on the space the player is moving to
+                        player2pieces[player1pieces.index(piece)] = 0
                         numplayer2pieces -= 1
-                else:
+                else: #if the space is empty
                     print('does not contain blue or red')
+                    #adds a blue circle to the place on the board where the piece is and updates player1pieces variable
                     board[player1score] = "🔵"
                     for piece in player1pieces:
                         if piece == 0:
@@ -875,22 +909,34 @@ class yutnoriplayer1DefaultButton(discord.ui.Button):
                             player1pieces[player1pieces.index(piece)] = player1score
                             print(player1pieces)
                             break
-            elif interaction.custom_id.__contains__("player1piece"):
-                num = int(interaction.custom_id[12:])
-                newplace = player1pieces[num] + player1score
-                if board[player1score+player1pieces[num]].__contains__("🔵"):
+            elif interaction.custom_id.__contains__("player1piece"): #checks if the button being pressed is a piece button
+                num = int(interaction.custom_id[12:]) #gets the number of the piece
+                newplace = num + player1score #gets the new place of the piece
+                if board[newplace].__contains__("🔵"): #checks if the space already contains one the players pieces
                     print('contains blue')
+                    #adds another blue circle to the place on the board where the piece is and updates player1pieces variable
                     board[player1score]+="🔵"
                     for piece in player1pieces:
                         if piece == 0:
-                            player1pieces[piece] = player1score
+                            player1pieces[player1pieces[0]] = player1score
                             break
-                elif board[player1score].__contains__("🔴"):
+                elif board[newplace].__contains__("🔴"): #checks if the space contains one or more of the other players pieces
                     print('contains red')
+                    #replaces the red circle with a blue circle and updates player2pieces variable
                     board[player1score] = "🔵"
-                    for piece in [piece for piece in player2pieces if piece == player1score]:
-                        player2pieces[piece] = 0
+                    for piece in [piece for piece in player2pieces if piece == newplace]:
+                        player2pieces[player2pieces.index(piece)] = 0
                         numplayer2pieces -= 1
+                else: #if the space is empty
+                    print('does not contain blue or red')
+                    #adds a blue circle to the place on the board where the piece is and updates player1pieces variable
+                    board[newplace] = "🔵"
+                    for piece in player1pieces:
+                        if piece == 0:
+                            print(player1pieces.index(piece))
+                            player1pieces[player1pieces.index(piece)] = player1score
+                            print(player1pieces)
+                            break
                 
 
             board["player2home"]="🔴"*(4-numplayer2pieces)
@@ -915,8 +961,6 @@ class yutnoriplayer1DefaultView(discord.ui.View):
         self.stop()
         await self.message.interaction.followup.send("Timed out.", ephemeral=True)
         return
-
-    
 
 #class yutnoriplayer2moveview(discord.ui.View):
 

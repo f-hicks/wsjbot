@@ -155,6 +155,30 @@ class editsevent_(discord.ui.View):
     async def editdatebutton_callback(self, button, interaction):
         pass
 
+
+class DefaultSelect(discord.ui.Button):
+    def __init__(self, custom_id, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.custom_id = custom_id
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.view.custom_id = interaction.custom_id
+        self.view.disable_all_items()
+        self.view.stop()
+        return
+
+class DefaultSelectView(discord.ui.View):
+    def __init__(self, custom_id=None):
+        super().__init__()
+        self.custom_id = custom_id
+
+    async def on_timeout(self):
+        self.disable_all_items()
+        self.stop()
+        await self.message.interaction.followup.send("Timed out.", ephemeral=True)
+        return
+
 class editeventview(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -451,7 +475,20 @@ async def addevent(ctx):
 
 @bot.slash_command(name="editevent", description = "edits an events from the event list",) # Create a slash command
 async def editevent(ctx):
-    await ctx.respond(view=editeventview())
+    global events
+    view = DefaultSelectView()
+    options=[]
+    now = datetime.now()
+    for event in events:
+        options.append(
+            discord.SelectOption(
+                label=event,
+                description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days} days',
+
+            )
+        )
+    view.add_item(discord.ui.Select(placeholder="Select an event",options=options))
+    await ctx.respond(view=view)
 
 @bot.slash_command(name="daysuntiljamboree",description="whispers to you the days until the jamboree starts")
 async def DaysUntilJamboree(ctx):

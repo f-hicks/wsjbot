@@ -156,14 +156,19 @@ class editsevent_(discord.ui.View):
         pass
 
 
-class DefaultSelect(discord.ui.Button):
-    def __init__(self, custom_id, *args, **kwargs):
+class DefaultSelect(discord.ui.Select):
+    def __init__(self,  *args, **kwargs):
+        
         super().__init__(*args, **kwargs)
-        self.custom_id = custom_id
+        #self.custom_id = custom_id
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, select, interaction):
+        print('callback')
+        global editevents
+        editevents = select.values[0]
+        await interaction.response.edit_message(view=editevent_())
         await interaction.response.defer()
-        self.view.custom_id = interaction.custom_id
+        #self.view.custom_id = interaction.custom_id
         self.view.disable_all_items()
         self.view.stop()
         return
@@ -487,7 +492,7 @@ async def editevent(ctx):
 
             )
         )
-    view.add_item(discord.ui.Select(placeholder="Select an event",options=options))
+    view.add_item(DefaultSelect(placeholder="Select an event",options=options,custom_id="select"))
     await ctx.respond(view=view)
 
 @bot.slash_command(name="daysuntiljamboree",description="whispers to you the days until the jamboree starts")

@@ -148,7 +148,7 @@ class editeventname(discord.ui.Modal):
         date = events[oldeventname]
         events.pop(oldeventname)
         events = insert(events,{neweventname:date},index)
-        await interaction.response.edit_message('Name changed successfully')
+        await interaction.response.edit_message(view=None)
 
 
 class editsevent_(discord.ui.View):

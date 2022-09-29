@@ -148,7 +148,7 @@ class editeventname(discord.ui.Modal):
         date = events[oldeventname]
         events.pop(oldeventname)
         events = insert(events,{neweventname:date},index)
-        await interaction.response.edit_message(view=None)
+        await interaction.response.edit_message('Name changed successfully')
 
 
 class editsevent_(discord.ui.View):
@@ -160,10 +160,15 @@ class editsevent_(discord.ui.View):
     async def editbutton_callback(self, button, interaction):
         await interaction.response.send_modal(editeventname(title="edit the name of the event"))
         await interaction.delete_original_message()
+        #await interaction.followup.send('Name changed successfully',ephemeral=True)
     @discord.ui.button(label="Edit date",style=discord.ButtonStyle.primary, custom_id="editeventdate")
     async def editdatebutton_callback(self, button, interaction):
         #TODO create the edit date modal
         pass
+    @discord.ui.button(label="back",style=discord.ButtonStyle.primary, custom_id="back")
+    async def backbutton_callback(self, button, interaction):
+        await interaction.response.edit_message(view=editevent_())
+        #await interaction.delete_original_message()
 
 
 class DefaultSelect(discord.ui.Select):

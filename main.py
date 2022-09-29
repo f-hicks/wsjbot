@@ -58,8 +58,8 @@ def daysuntilkorea():
 
 colours = {"red": discord.Colour.red(),"green": discord.Colour.green(),"blue": discord.Colour.blue(),"purple": discord.Colour.purple(),"magenta": discord.Colour.magenta(),"gold": discord.Colour.gold(),"orange": discord.Colour.orange(),"teal": discord.Colour.teal(),"dark_teal": discord.Colour.dark_teal(),"dark_green": discord.Colour.dark_green(),"dark_blue": discord.Colour.dark_blue(),"dark_purple": discord.Colour.dark_purple(),"dark_magenta": discord.Colour.dark_magenta(),"dark_gold": discord.Colour.dark_gold(),"dark_orange": discord.Colour.dark_orange(),"dark_red": discord.Colour.dark_red(),"lighter_grey": discord.Colour.lighter_grey(),"darker_grey": discord.Colour.darker_grey(),"light_grey": discord.Colour.light_grey(),"dark_grey": discord.Colour.dark_grey(),"black": discord.Colour.default(),"white": discord.Colour.from_rgb(255,255,255),"default": discord.Colour.default(),"blurple": discord.Colour.blurple(),"greyple": discord.Colour.greyple(),}
 
-
-bot = discord.Bot(debug_guilds=[])
+debug_guilds = [1014242207097696347]
+bot = discord.Bot(debug_guilds=debug_guilds)
 discord.Intents.all()
 
 class channelview(discord.ui.View):
@@ -122,6 +122,15 @@ class editevent_(discord.ui.View):
     @discord.ui.button(label="Delete",style=discord.ButtonStyle.red, custom_id="deleteevent")
     async def deletebutton_callback(self, button, interaction):
         events.pop(editevents)
+        button.disabled = True
+        button.style = discord.ButtonStyle.green
+        await interaction.response.edit_message(view=self)
+        await interaction.followup.send("Event deleted",ephemeral=True)
+        with open("events.py","w") as f:
+            f.seek(0) 
+            f.truncate()
+            f.write(f"events = {events}")
+            
         #await interaction.delete_original_message()
 
 class editeventname(discord.ui.Modal):
@@ -146,13 +155,14 @@ class editsevent_(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         global events
-    
+    #TODO add back button
     @discord.ui.button(label="Edit name",style=discord.ButtonStyle.primary, custom_id="editeventname")
     async def editbutton_callback(self, button, interaction):
         await interaction.response.send_modal(editeventname(title="edit the name of the event"))
         await interaction.delete_original_message()
     @discord.ui.button(label="Edit date",style=discord.ButtonStyle.primary, custom_id="editeventdate")
     async def editdatebutton_callback(self, button, interaction):
+        #TODO create the edit date modal
         pass
 
 
@@ -161,13 +171,17 @@ class DefaultSelect(discord.ui.Select):
         
         super().__init__(*args, **kwargs)
         #self.custom_id = custom_id
+        global SelectSELF
+        SelectSELF = self
+        self.self = self
 
-    async def callback(self, select, interaction):
+    async def callback(select,interaction):
+        self = SelectSELF
         print('callback')
         global editevents
         editevents = select.values[0]
         await interaction.response.edit_message(view=editevent_())
-        await interaction.response.defer()
+        #await interaction.response.defer()
         #self.view.custom_id = interaction.custom_id
         self.view.disable_all_items()
         self.view.stop()
@@ -569,19 +583,23 @@ async def playyutnori(ctx,player1,player2,board,boardstring): #starts the game
 
 @bot.slash_command(name="yutnori",description="starts a game of yut nori with whoever you ping")
 async def yutnorigame(ctx,opponent: Option(discord.Member, "opponent") ): #slash command to start the game
-    global player1pieces
-    global player2pieces
-    player1pieces = [0,0,0,0]
-    player2pieces = [0,0,0,0]
-    global player2
-    player2 = opponent
-    global player1
-    player1 = ctx.author
-    global boardstring
-    boardstring = ""
-    for item in list(board.values()):
-        boardstring += item 
-    await playyutnori(ctx,player1,player2,board,boardstring)
+    #TODO only allow the game to be played on debug server
+    if ctx.guild.id in debug_guilds:
+        await ctx.respond('This game is in development so is only avaiable in a debug server',ephermal=True)
+    else:
+        global player1pieces
+        global player2pieces
+        player1pieces = [0,0,0,0]
+        player2pieces = [0,0,0,0]
+        global player2
+        player2 = opponent
+        global player1
+        player1 = ctx.author
+        global boardstring
+        boardstring = ""
+        for item in list(board.values()):
+            boardstring += item 
+        await playyutnori(ctx,player1,player2,board,boardstring)
     
 
 class yutnoriplayer1view(discord.ui.View):#view for player 1 to throw the sticks to decide who goes first

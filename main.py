@@ -155,7 +155,7 @@ class editeventname(discord.ui.Modal):
         super().__init__(*args, **kwargs)
         global events
         
-        self.add_item(discord.ui.InputText(label="please enter a title for the event", placeholder="title", custom_id="eventname"))
+        self.add_item(discord.ui.InputText(label="please enter a title for the event", value=str(editevents), custom_id="eventname"))
     async def callback(self, interaction: discord.Interaction):
         global events
         #gets the old event name

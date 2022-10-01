@@ -105,7 +105,7 @@ class addeventconfirmdate(discord.ui.View):
     
     @discord.ui.button(label="I understand",style=discord.ButtonStyle.primary, custom_id="addeventconfirmdate")
     async def button_callback(self, button, interaction):
-        await interaction.response.send_modal(addeventmodal(title="create an embed"))
+        await interaction.response.send_modal(editdatename())
         await interaction.delete_original_message()
 
 
@@ -184,20 +184,26 @@ class editdatename(discord.ui.Modal):
         
         self.add_item(discord.ui.InputText(label="please enter a new date for the event", placeholder="Date", custom_id="eventdate"))
     async def callback(self, interaction: discord.Interaction):
-        global events
-        olddatename = events[editevents]
-        newdatename = self.children[0].value
-        values = list(events.values())
-        index=values.index(olddatename)
-        keys = list(events.keys())
-        eventname = keys[index]
-        events.pop(olddatename)
-        events = insert(events,{eventname:newdatename},index)
-        with open("events.py","w") as f:
-            f.seek(0) 
-            f.truncate()
-            f.write(f"events = {events}")
-        await interaction.response.edit_message(view=None)
+        try:
+            date_ = datetime.strptime(self.children[0].value, "%d %B, %Y")
+        except Exception as e:
+            #print(e)
+            await interaction.response.send_message(f"{self.children[0].value} is not a valid date. Please use the format DD Month, YYYY. for example: 1 January, 2020",view=addeventconfirmdate())
+        else:
+            global events
+            olddatename = events[editevents]
+            newdatename = self.children[0].value
+            values = list(events.values())
+            index=values.index(olddatename)
+            keys = list(events.keys())
+            eventname = keys[index]
+            events.pop(eventname)
+            events = insert(events,{eventname:newdatename},index)
+            with open("events.py","w") as f:
+                f.seek(0) 
+                f.truncate()
+                f.write(f"events = {events}")
+            await interaction.response.edit_message(view=None)
 
 
 class editsevent_(discord.ui.View):
@@ -211,7 +217,7 @@ class editsevent_(discord.ui.View):
         #await interaction.followup.send('Name changed successfully',ephemeral=True)
     @discord.ui.button(label="Edit date",style=discord.ButtonStyle.primary, custom_id="editeventdate")
     async def editdatebutton_callback(self, button, interaction):
-        await interaction.response.send_modal(editeventdate(title="edit the date of the event"))
+        await interaction.response.send_modal(editdatename(title="edit the date of the event"))
 
         #TODO create the edit date modal
         pass

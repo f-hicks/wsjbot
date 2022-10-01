@@ -1,3 +1,4 @@
 .env
 events.py
 /__pycache__/events.cpython-39.pyc
+/.vscode/settings.json

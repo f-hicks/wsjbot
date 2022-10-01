@@ -158,13 +158,19 @@ class editeventname(discord.ui.Modal):
         self.add_item(discord.ui.InputText(label="please enter a title for the event", placeholder="title", custom_id="eventname"))
     async def callback(self, interaction: discord.Interaction):
         global events
+        #gets the old event name
         oldeventname = editevents
+        #gets the new event name
         neweventname = self.children[0].value
+        #gets the date of the event
         keys = list(events.keys())
         index=keys.index(oldeventname)
         date = events[oldeventname]
+        #deletes the old event
         events.pop(oldeventname)
+        #adds the new event
         events = insert(events,{neweventname:date},index)
+        #writes the new event to the file
         with open("events.py","w") as f:
             f.seek(0) 
             f.truncate()
@@ -181,11 +187,12 @@ class editdatename(discord.ui.Modal):
         global events
         olddatename = events[editevents]
         newdatename = self.children[0].value
+        values = list(events.values())
+        index=values.index(olddatename)
         keys = list(events.keys())
-        index=keys.index(oldeventname)
-        date = events[oldeventname]
-        events.pop(oldeventname)
-        events = insert(events,{neweventname:date},index)
+        eventname = keys[index]
+        events.pop(olddatename)
+        events = insert(events,{eventname:newdatename},index)
         with open("events.py","w") as f:
             f.seek(0) 
             f.truncate()

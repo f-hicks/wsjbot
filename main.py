@@ -8,6 +8,7 @@ from datetime import datetime
 import random
 from events import events
 import time
+from datetime import timedelta
 
 
 load_dotenv()
@@ -132,7 +133,23 @@ class editevent_(discord.ui.View):
             f.write(f"events = {events}")
             
         #await interaction.delete_original_message()
+    @discord.ui.button(label="Back",style=discord.ButtonStyle.grey, custom_id="back")
+    async def backbutton_callback(self, button, interaction):
+        global events
+        view = DefaultSelectView()
+        options=[]
+        now = datetime.now()
+        for event in events:
+            options.append(
+                discord.SelectOption(
+                    label=event,
+                    description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
 
+                )
+            )
+        view.add_item(DefaultSelect(placeholder="Select an event",options=options,custom_id="select"))
+        await interaction.response.edit_message(view=view)
+        
 class editeventname(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -148,6 +165,31 @@ class editeventname(discord.ui.Modal):
         date = events[oldeventname]
         events.pop(oldeventname)
         events = insert(events,{neweventname:date},index)
+        with open("events.py","w") as f:
+            f.seek(0) 
+            f.truncate()
+            f.write(f"events = {events}")
+        await interaction.response.edit_message(view=None)
+
+class editdatename(discord.ui.Modal):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        global events
+        
+        self.add_item(discord.ui.InputText(label="please enter a new date for the event", placeholder="Date", custom_id="eventdate"))
+    async def callback(self, interaction: discord.Interaction):
+        global events
+        olddatename = events[editevents]
+        newdatename = self.children[0].value
+        keys = list(events.keys())
+        index=keys.index(oldeventname)
+        date = events[oldeventname]
+        events.pop(oldeventname)
+        events = insert(events,{neweventname:date},index)
+        with open("events.py","w") as f:
+            f.seek(0) 
+            f.truncate()
+            f.write(f"events = {events}")
         await interaction.response.edit_message(view=None)
 
 
@@ -159,10 +201,11 @@ class editsevent_(discord.ui.View):
     @discord.ui.button(label="Edit name",style=discord.ButtonStyle.primary, custom_id="editeventname")
     async def editbutton_callback(self, button, interaction):
         await interaction.response.send_modal(editeventname(title="edit the name of the event"))
-        await interaction.delete_original_message()
         #await interaction.followup.send('Name changed successfully',ephemeral=True)
     @discord.ui.button(label="Edit date",style=discord.ButtonStyle.primary, custom_id="editeventdate")
     async def editdatebutton_callback(self, button, interaction):
+        await interaction.response.send_modal(editeventdate(title="edit the date of the event"))
+
         #TODO create the edit date modal
         pass
     @discord.ui.button(label="back",style=discord.ButtonStyle.primary, custom_id="back")
@@ -178,8 +221,7 @@ class DefaultSelect(discord.ui.Select):
         #self.custom_id = custom_id
         global SelectSELF
         SelectSELF = self
-        self.self = self
-
+    
     async def callback(select,interaction):
         self = SelectSELF
         print('callback')
@@ -191,6 +233,13 @@ class DefaultSelect(discord.ui.Select):
         self.view.disable_all_items()
         self.view.stop()
         return
+    #cancel button
+    @discord.ui.button(label="Cancel",style=discord.ButtonStyle.red, custom_id="cancel")
+    async def cancelbutton_callback(self, button, interaction):
+        self.view.disable_all_items()
+        self.view.stop()
+        await interaction.response.edit_message(view=None)
+        #await interaction.delete_original_message()
 
 class DefaultSelectView(discord.ui.View):
     def __init__(self, custom_id=None):
@@ -214,7 +263,7 @@ class editeventview(discord.ui.View):
         options.append(
             discord.SelectOption(
                 label=event,
-                description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days} days',
+                description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
 
             )
         )
@@ -451,28 +500,31 @@ async def changeactivity():
     await bot.change_presence(activity=discord.Game(f'{daysuntilkorea().days} days until Jamboree'))
   else:
     now=datetime.now()
-    await bot.change_presence(activity=discord.Game(f'Our next unit event is {list(events)[0]} on {events[list(events)[0]]} | {(datetime.strptime(events[list(events)[0]], "%d %B, %Y")-now).days} days'))
+    await bot.change_presence(activity=discord.Game(f'Our next unit event is {list(events)[0]} on {events[list(events)[0]]} | {(datetime.strptime(events[list(events)[0]], "%d %B, %Y")-now).days+1} days'))
     presence = 0
 
 @tasks.loop(hours=1)
 async def hourly():
+    time.sleep(5)
     global events
+    eventstoremove = []
     now = datetime.now()
     for event in events:
-        date = datetime.strptime(events[event], "%d %B, %Y")
+        date_ = datetime.strptime(events[event], "%d %B, %Y")
+        date = date_ + timedelta(days=1)
         if date < now:
-            events.pop(event)
+            eventstoremove.append(event)
+    for event in eventstoremove:
+        del events[event]
+    with open("events.py","w") as f:
+        f.seek(0) 
+        f.truncate()
+        f.write(f"events = {events}")
 
 @bot.event
 async def on_ready():
     changeactivity.start()
     hourly.start()
-    now = datetime.now()
-    for event in events:
-        date = datetime.strptime(events[event], "%d %B, %Y")
-        if date < now:
-            print(event)
-            events.pop(event)
             
 
     print(f"{bot.user} is ready and online!")
@@ -507,7 +559,7 @@ async def editevent(ctx):
         options.append(
             discord.SelectOption(
                 label=event,
-                description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days} days',
+                description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
 
             )
         )
@@ -521,14 +573,14 @@ async def DaysUntilJamboree(ctx):
 @bot.slash_command(name="nextevent",description="whispers to you the next unit event")
 async def nextevent(ctx):
     now = datetime.now()
-    await ctx.respond(f'The next event is {list(events)[0]}. It is on {events[list(events)[0]]} which is in {(datetime.strptime(events[list(events)[0]], "%d %B, %Y")-now).days} days time.',ephemeral=True)
+    await ctx.respond(f'The next event is {list(events)[0]}. It is on {events[list(events)[0]]} which is in {(datetime.strptime(events[list(events)[0]], "%d %B, %Y")-now).days+1} days time.',ephemeral=True)
 
 @bot.slash_command(name="events",description="all events")
 async def nextevent(ctx):
     now = datetime.now()
     embed = discord.Embed(title="Events",description="",color=random.choice(colours_))
     for event in events:
-        embed.add_field(name=event,value=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days} days',inline=False)
+        embed.add_field(name=event,value=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',inline=False)
     await ctx.respond(embed=embed,ephemeral=True)
     
 @bot.slash_command(name="socials",description="gives you a list of all our official social medias")

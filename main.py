@@ -175,7 +175,7 @@ class editeventname(discord.ui.Modal):
             f.seek(0) 
             f.truncate()
             f.write(f"events = {events}")
-        await interaction.response.edit_message(view=None)
+        await interaction.response.edit_message(view=editevent_())
 
 class editdatename(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
@@ -654,8 +654,8 @@ async def playyutnori(ctx,player1,player2,board,boardstring): #starts the game
 @bot.slash_command(name="yutnori",description="starts a game of yut nori with whoever you ping")
 async def yutnorigame(ctx,opponent: Option(discord.Member, "opponent") ): #slash command to start the game
     #TODO only allow the game to be played on debug server
-    if ctx.guild.id in debug_guilds:
-        await ctx.respond('This game is in development so is only avaiable in a debug server',ephermal=True)
+    if ctx.guild_id not in debug_guilds:
+        await ctx.respond('This game is in development so is only avaiable in a debug server',ephemeral=True)
     else:
         global player1pieces
         global player2pieces

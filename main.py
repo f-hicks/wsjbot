@@ -21,6 +21,7 @@ socials = {
     "Youtube": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 
+datetimepossibleformats = ["%-d %B, %Y","%d %B, %y","%d %b, %Y","%d %b, %y","%d %m, %Y","%d %m, %y","%-d, %B, %Y","%d, %B, %y","%d, %b, %Y","%d, %b, %y","%d, %m, %Y","%d, %m, %y","%-d/%B/%Y","%d/%B/%y","%d/%b/%Y","%-d/%b/%y","%d/%m/%Y","%d/%m/%y"]
 
 colours_ = [
     discord.Color.teal(),
@@ -105,7 +106,7 @@ class addeventconfirmdate(discord.ui.View):
     
     @discord.ui.button(label="I understand",style=discord.ButtonStyle.primary, custom_id="addeventconfirmdate")
     async def button_callback(self, button, interaction):
-        await interaction.response.send_modal(editdatename())
+        await interaction.response.send_modal(editdatename(title="Add Event",description="Please enter the date of the event in the format DD/MM/YYYY",color=discord.Colour.green()))
         await interaction.delete_original_message()
 
 
@@ -182,17 +183,22 @@ class editdatename(discord.ui.Modal):
         super().__init__(*args, **kwargs)
         global events
         
-        self.add_item(discord.ui.InputText(label="please enter a new date for the event", placeholder="Date", custom_id="eventdate"))
+        self.add_item(discord.ui.InputText(label="please enter a new date for the event", value=events[editevents], custom_id="eventdate"))
     async def callback(self, interaction: discord.Interaction):
-        try:
-            date_ = datetime.strptime(self.children[0].value, "%d %B, %Y")
-        except Exception as e:
-            #print(e)
-            await interaction.response.send_message(f"{self.children[0].value} is not a valid date. Please use the format DD Month, YYYY. for example: 1 January, 2020",view=addeventconfirmdate())
-        else:
+        correctformat = False
+        for datetimestring in datetimepossibleformats:
+            try:
+                date__ = datetime.strptime(self.children[0].value, datetimestring)
+            except ValueError:
+                pass
+            else:
+                correctformat = True
+        
+        if correctformat:
+
             global events
             olddatename = events[editevents]
-            newdatename = self.children[0].value
+            newdatename = date__.strftime("%d %B, %Y")
             values = list(events.values())
             index=values.index(olddatename)
             keys = list(events.keys())
@@ -204,6 +210,9 @@ class editdatename(discord.ui.Modal):
                 f.truncate()
                 f.write(f"events = {events}")
             await interaction.response.edit_message(view=None)
+        else:
+            await interaction.response.send_modal(editdatename(title="Invalid format. Edit Event"))
+
 
 
 class editsevent_(discord.ui.View):
@@ -471,13 +480,21 @@ class addeventmodal(discord.ui.Modal):
     async def callback(self, interaction = discord.Interaction):
         global events
         eventname = self.children[0].value
-        date = self.children[1].value
-        try:
-            date_ = datetime.strptime(date, "%d %B, %Y")
-        except Exception as e:
-            #print(e)
-            await interaction.response.send_message(f"{date} is not a valid date. Please use the format DD Month, YYYY. for example: 1 January, 2020",view=addeventconfirmdate())
-        else:
+        
+        correctformat = False
+        for datetimestring in datetimepossibleformats:
+            try:
+                date__ = datetime.strptime(self.children[1].value, datetimestring)
+                
+                
+                
+            except ValueError:
+                pass
+            else:
+                correctformat = True
+        if correctformat:
+            date = date__.strftime("%d %B, %Y")
+            date_ = datetime.now()
             await interaction.response.send_message(f"{eventname}: {date}")
             for event in events:
                 if datetime.strptime(events[event], "%d %B, %Y") < date_:
@@ -498,7 +515,8 @@ class addeventmodal(discord.ui.Modal):
                             f.truncate()
                             f.write(f"events = {events}")
                     break
-
+        else:
+            await interaction.response.send_modal(addeventmodal(title="Please enter a valid date"))
 
 insert = lambda _dict, obj, pos: {k: v for k, v in (list(_dict.items())[:pos] +
                                                     list(obj.items()) +
@@ -507,7 +525,7 @@ insert = lambda _dict, obj, pos: {k: v for k, v in (list(_dict.items())[:pos] +
 presence = 0
 @tasks.loop(hours=0.001)
 async def changeactivity():
-  global presence
+  global presence   
   if presence == 0:
     presence = 1
     await bot.change_presence(activity=discord.Game(f'{daysuntilkorea().days} days until Jamboree'))

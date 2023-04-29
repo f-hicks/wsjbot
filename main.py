@@ -9,17 +9,24 @@ import random
 from events import events
 import time
 from datetime import timedelta
-
+from socials import socials
+from dateutil.parser import parse
 
 load_dotenv()
 
-socials = {
-    "instagram": "https://www.instagram.com/unit68wsj/",
-    "TikTok": "https://www.tiktok.com/@unit68wsj",
-    "Facebook": "https://www.facebook.com/Berkshire25WSJ/",
-    "Website": "https://unit68.ml",
-    "Youtube": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-}
+def is_date(string, fuzzy=False):
+    """
+    Return whether the string can be interpreted as a date.
+
+    :param string: str, string to check for date
+    :param fuzzy: bool, ignore unknown tokens in string if True
+    """
+    try: 
+        parse(string, fuzzy=fuzzy)
+        return True
+
+    except ValueError:
+        return False
 
 datetimepossibleformats = ["%-d %B, %Y","%d %B, %y","%d %b, %Y","%d %b, %y","%d %m, %Y","%d %m, %y","%-d, %B, %Y","%d, %B, %y","%d, %b, %Y","%d, %b, %y","%d, %m, %Y","%d, %m, %y","%-d/%B/%Y","%d/%B/%y","%d/%b/%Y","%-d/%b/%y","%d/%m/%Y","%d/%m/%y"]
 
@@ -53,15 +60,15 @@ def daysuntilkorea():
     now = datetime.now()
     korea=datetime(day=1,month=8,year=2023)
     return korea-now
-
-
-
-
+def daysuntilleave(): 
+    now = datetime.now() 
+    korea=datetime(day=26,month=7,year=2023)
+    return korea-now
 
 colours = {"red": discord.Colour.red(),"green": discord.Colour.green(),"blue": discord.Colour.blue(),"purple": discord.Colour.purple(),"magenta": discord.Colour.magenta(),"gold": discord.Colour.gold(),"orange": discord.Colour.orange(),"teal": discord.Colour.teal(),"dark_teal": discord.Colour.dark_teal(),"dark_green": discord.Colour.dark_green(),"dark_blue": discord.Colour.dark_blue(),"dark_purple": discord.Colour.dark_purple(),"dark_magenta": discord.Colour.dark_magenta(),"dark_gold": discord.Colour.dark_gold(),"dark_orange": discord.Colour.dark_orange(),"dark_red": discord.Colour.dark_red(),"lighter_grey": discord.Colour.lighter_grey(),"darker_grey": discord.Colour.darker_grey(),"light_grey": discord.Colour.light_grey(),"dark_grey": discord.Colour.dark_grey(),"black": discord.Colour.default(),"white": discord.Colour.from_rgb(255,255,255),"default": discord.Colour.default(),"blurple": discord.Colour.blurple(),"greyple": discord.Colour.greyple(),}
 
 debug_guilds = [1014242207097696347]
-bot = discord.Bot(debug_guilds=debug_guilds)
+bot = discord.Bot()
 discord.Intents.all()
 
 class channelview(discord.ui.View):
@@ -141,10 +148,13 @@ class editevent_(discord.ui.View):
         options=[]
         now = datetime.now()
         for event in events:
+            datetimeobj = datetime.fromtimestamp(events[event])
+            datetimestr = datetimeobj.strftime("%d %B, %Y")
             options.append(
                 discord.SelectOption(
                     label=event,
-                    description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
+                    #description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
+                    description=f'{datetimestr} | {(datetimeobj-now).days+1} days',
 
                 )
             )
@@ -182,34 +192,28 @@ class editdatename(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         global events
-        
-        self.add_item(discord.ui.InputText(label="please enter a new date for the event", value=events[editevents], custom_id="eventdate"))
+        datetimeobj = datetime.fromtimestamp(events[editevents])
+        datetimestr = datetimeobj.strftime("%d %B, %Y")
+        self.add_item(discord.ui.InputText(label="please enter a new date for the event", value=datetimestr, custom_id="eventdate"))
     async def callback(self, interaction: discord.Interaction):
-        correctformat = False
-        for datetimestring in datetimepossibleformats:
-            try:
-                date__ = datetime.strptime(self.children[0].value, datetimestring)
-            except ValueError:
-                pass
-            else:
-                correctformat = True
-        
-        if correctformat:
+        inputstr = self.children[0].value
+        if is_date(inputstr, fuzzy = True):
 
             global events
             olddatename = events[editevents]
-            newdatename = date__.strftime("%d %B, %Y")
+            newdateunix = time.mktime(parse(str(inputstr), fuzzy = True).timetuple())
             values = list(events.values())
             index=values.index(olddatename)
             keys = list(events.keys())
             eventname = keys[index]
             events.pop(eventname)
-            events = insert(events,{eventname:newdatename},index)
+            events = insert(events,{eventname:newdateunix},index)
             with open("events.py","w") as f:
                 f.seek(0) 
                 f.truncate()
                 f.write(f"events = {events}")
-            await interaction.response.edit_message(view=None)
+            originalmessage = await interaction.original_response()
+            await originalmessage.delete()
         else:
             await interaction.response.send_modal(editdatename(title="Invalid format. Edit Event"))
 
@@ -277,15 +281,17 @@ class DefaultSelectView(discord.ui.View):
 class editeventview(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        global events
         
     options=[]
     now = datetime.now()
     for event in events:
+        datetimeobj = datetime.fromtimestamp(events[event])
+        datetimestr = datetimeobj.strftime("%d %B, %Y")
         options.append(
             discord.SelectOption(
                 label=event,
-                description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
+                #description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
+                description=f'{datetimestr} | {(datetimeobj-now).days+1} days',
 
             )
         )
@@ -492,16 +498,18 @@ class addeventmodal(discord.ui.Modal):
                 pass
             else:
                 correctformat = True
+                break
         if correctformat:
             date = date__.strftime("%d %B, %Y")
+            dateunix = time.mktime(date__.timetuple())
             date_ = datetime.now()
             await interaction.response.send_message(f"{eventname}: {date}")
             for event in events:
-                if datetime.strptime(events[event], "%d %B, %Y") < date_:
+                if datetime.fromtimestamp(events[event]) < date_:
                     keys = list(events.keys())
                     index=keys.index(event)
                     if index == len(events)-1:
-                        events = insert(events,{eventname:date},index+1)
+                        events = insert(events,{eventname:dateunix},index+1)
                         with open("events.py","w") as f:
                             f.seek(0) 
                             f.truncate()
@@ -509,7 +517,7 @@ class addeventmodal(discord.ui.Modal):
                 else:
                     keys = list(events.keys())
                     index=keys.index(event)
-                    events = insert(events,{eventname:date},index)
+                    events = insert(events,{eventname:dateunix},index)
                     with open("events.py","w") as f:
                             f.seek(0) 
                             f.truncate()
@@ -517,7 +525,7 @@ class addeventmodal(discord.ui.Modal):
                     break
         else:
             await interaction.response.send_modal(addeventmodal(title="Please enter a valid date"))
-
+#function to insert an object in a certain index in an dictionary
 insert = lambda _dict, obj, pos: {k: v for k, v in (list(_dict.items())[:pos] +
                                                     list(obj.items()) +
                                                     list(_dict.items())[pos:])}
@@ -529,9 +537,14 @@ async def changeactivity():
   if presence == 0:
     presence = 1
     await bot.change_presence(activity=discord.Game(f'{daysuntilkorea().days} days until Jamboree'))
+  elif presence == 1:
+    await bot.change_presence(activity=discord.Game(f'{daysuntilleave().days} days until we leave!'))
+    presence = 2
   else:
     now=datetime.now()
-    await bot.change_presence(activity=discord.Game(f'Our next unit event is {list(events)[0]} on {events[list(events)[0]]} | {(datetime.strptime(events[list(events)[0]], "%d %B, %Y")-now).days+1} days'))
+    datetimeobj = datetime.fromtimestamp(events[list(events)[0]])
+    datetimestr = datetimeobj.strftime("%d %B, %Y")
+    await bot.change_presence(activity=discord.Game(f'Our next unit event is {list(events)[0]} on {datetimestr} | {(datetimeobj-now).days+1} days'))
     presence = 0
 
 @tasks.loop(hours=1)
@@ -541,8 +554,8 @@ async def hourly():
     eventstoremove = []
     now = datetime.now()
     for event in events:
-        date_ = datetime.strptime(events[event], "%d %B, %Y")
-        date = date_ + timedelta(days=1)
+        datetimeobj = datetime.fromtimestamp(events[event])
+        date = datetimeobj + timedelta(days=1)
         if date < now:
             eventstoremove.append(event)
     for event in eventstoremove:
@@ -565,37 +578,63 @@ async def on_ready():
     bot.add_view(questionchannelconfirm())
     bot.add_view(yutnoriplayer1view())
 
+@bot.event
+async def on_message(message):
+    if message.author.id == 947187485212037171:
+        
+        await message.add_reaction("👏")
+        await message.add_reaction("👍")
+    elif message.author.id == 407625153355448330:
+
+        await message.add_reaction("<:rickroll:1101983073488355349>")
+
 @bot.slash_command(name = "hello", description = "Say hello to the bot")
 async def say_hello(ctx):
-    await ctx.respond("Hey!")
+    await ctx.respond("Hey!", ephemeral = True)
     print(ctx.guild.emojis)
 
 
-@bot.slash_command(name="createmessage", description = "create a message as the Bot",) # Create a slash command
-@default_permissions(manage_messages=True)
-async def create_message(ctx):
-    await ctx.send_modal(createmessagemodal(title="create an embed")) # Send a message with our View class that contains the button
+
+@bot.slash_command(name = "website", description = "world scout jamboree official website")
+async def wsj_website(ctx):
+    await ctx.respond("""Here is the website:
+https://2023wsjkorea.org/eng/index.jamboree
+""", ephemeral=True)
+
+@bot.slash_command(name = "grahamclap", description = "clap for graham!!!")
+async def clapforgraham(ctx):
+    msg = await (await ctx.respond("LETS GO GRAHAM!!!!!!")).original_response()
+    await msg.add_reaction("👏")
+    await msg.add_reaction("👍")
+
+#@bot.slash_command(name="createmessage", description = "create a message as the Bot",) # Create a slash command
+#@default_permissions(manage_messages=True)
+#async def create_message(ctx):
+#    await ctx.send_modal(createmessagemodal(title="create an embed")) # Send a message with our View class that contains the button
 
 @bot.slash_command(name="addevent", description = "adds an events to the event list",) # Create a slash command
 async def addevent(ctx):
     await ctx.send_modal(addeventmodal(title="add event"))
 
-@bot.slash_command(name="editevent", description = "edits an events from the event list",) # Create a slash command
+@bot.slash_command(name="editevent", description = "edit an events from the event list",) # Create a slash command
 async def editevent(ctx):
     global events
     view = DefaultSelectView()
     options=[]
     now = datetime.now()
     for event in events:
+        datetimeobj = datetime.fromtimestamp(events[event])
+        datetimestr = datetimeobj.strftime("%d %B, %Y")
         options.append(
             discord.SelectOption(
                 label=event,
-                description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
+                #description=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',
+                description=f'{datetimestr} | {(datetimeobj-now).days+1} days',
 
             )
         )
     view.add_item(DefaultSelect(placeholder="Select an event",options=options,custom_id="select"))
-    await ctx.respond(view=view)
+    await ctx.respond(view=view, ephemeral = True)
 
 @bot.slash_command(name="daysuntiljamboree",description="whispers to you the days until the jamboree starts")
 async def DaysUntilJamboree(ctx):
@@ -603,15 +642,16 @@ async def DaysUntilJamboree(ctx):
 
 @bot.slash_command(name="nextevent",description="whispers to you the next unit event")
 async def nextevent(ctx):
-    now = datetime.now()
-    await ctx.respond(f'The next event is {list(events)[0]}. It is on {events[list(events)[0]]} which is in {(datetime.strptime(events[list(events)[0]], "%d %B, %Y")-now).days+1} days time.',ephemeral=True)
+    unixtimestamp = list(events.values())[0]
+    await ctx.respond(f'The next event is {list(events)[0]}. It is on <t:{int(unixtimestamp)}:D> which is <t:{int(unixtimestamp)}:R> days time.',ephemeral=True)
 
 @bot.slash_command(name="events",description="all events")
 async def nextevent(ctx):
-    now = datetime.now()
     embed = discord.Embed(title="Events",description="",color=random.choice(colours_))
     for event in events:
-        embed.add_field(name=event,value=f'{events[event]} | {(datetime.strptime(events[event], "%d %B, %Y")-now).days+1} days',inline=False)
+        date = events[event]
+        embed.add_field(name=event,value=f'<t:{int(date)}:D> <t:{int(date)}:R>',inline=False)
+
     await ctx.respond(embed=embed,ephemeral=True)
     
 @bot.slash_command(name="socials",description="gives you a list of all our official social medias")
@@ -622,7 +662,14 @@ async def socialscmd(ctx):
 
     await ctx.respond(embed=embed,view=socialsview(),ephemeral=True)
 
+
+
+
 ############         Yut Nori game         ############
+
+
+
+
 board = {
     10:"⚪","gap9":"    ",9:"◽","gap8":"    ",8:"◽","gap7":"    ",7:"◽","gap6":"    ",6:"◽","gap5":"    ",5:"⚪","return5":"\n",
     "gap10":"\n",
